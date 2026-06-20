@@ -1,0 +1,36 @@
+// Los 30 casos de práctica — Crédito Empresarial Micro Micro
+// (ENUNCIADOS_30_CASOS_CREDITO_EMPRESARIAL.pdf)
+// diaPago: día del mes en que se pagan las cuotas (extraído del PDF)
+
+export const CASOS_30 = [
+  { n: 1,  cliente: 'Castor Pérez',         monto: 1000,  plazo: 12, cuota: '100.95',   tipoTEA: 'Microempresa', desembolso: '2026-02-02', diaPago: 3  },
+  { n: 2,  cliente: 'Eneida Mamani',        monto: 3000,  plazo: 12, cuota: '299.59',   tipoTEA: 'Consumo',      desembolso: '2026-02-05', diaPago: 5  },
+  { n: 3,  cliente: 'Ovidio Torres',        monto: 5000,  plazo: 18, cuota: '366.02',   tipoTEA: 'Microempresa', desembolso: '2026-02-10', diaPago: 10 },
+  { n: 4,  cliente: 'Dante Flores',         monto: 8000,  plazo: 6,  cuota: '1,480.73', tipoTEA: 'Microempresa', desembolso: '2026-02-15', diaPago: 15 },
+  { n: 5,  cliente: 'Laura Mendoza',        monto: 10000, plazo: 12, cuota: '1,009.46', tipoTEA: 'Microempresa', desembolso: '2026-03-01', diaPago: 3  },
+  { n: 6,  cliente: 'Boccaccio Vargas',     monto: 12000, plazo: 24, cuota: '700.94',   tipoTEA: 'Consumo',      desembolso: '2026-03-05', diaPago: 5  },
+  { n: 7,  cliente: 'Orlando Ríos',         monto: 15000, plazo: 18, cuota: '1,098.07', tipoTEA: 'Microempresa', desembolso: '2026-03-10', diaPago: 10 },
+  { n: 8,  cliente: 'Gerusalemme Huanca',   monto: 18000, plazo: 24, cuota: '1,072.10', tipoTEA: 'Microempresa', desembolso: '2026-03-15', diaPago: 15 },
+  { n: 9,  cliente: 'Pedro Calderón',       monto: 20000, plazo: 36, cuota: '927.12',   tipoTEA: 'Microempresa', desembolso: '2026-04-02', diaPago: 3  },
+  { n: 10, cliente: 'Félix Chávez',         monto: 25000, plazo: 24, cuota: '1,460.29', tipoTEA: 'Consumo',      desembolso: '2026-04-05', diaPago: 5  },
+  { n: 11, cliente: 'Hildegarda Huanca',    monto: 2000,  plazo: 12, cuota: '201.89',   tipoTEA: 'Microempresa', desembolso: '2026-04-10', diaPago: 10 },
+  { n: 12, cliente: 'Stendhal Aguilar',     monto: 4000,  plazo: 18, cuota: '292.82',   tipoTEA: 'Microempresa', desembolso: '2026-04-15', diaPago: 15 },
+  { n: 13, cliente: 'Kipling Soto',         monto: 6000,  plazo: 12, cuota: '599.17',   tipoTEA: 'Consumo',      desembolso: '2026-05-02', diaPago: 3  },
+  { n: 14, cliente: 'Erinná Espinoza',      monto: 7500,  plazo: 6,  cuota: '1,388.18', tipoTEA: 'Microempresa', desembolso: '2026-05-05', diaPago: 5  },
+  { n: 15, cliente: 'Annie Espinoza',       monto: 9000,  plazo: 24, cuota: '536.05',   tipoTEA: 'Microempresa', desembolso: '2026-05-10', diaPago: 10 },
+  { n: 16, cliente: 'Homero Quispe',        monto: 11000, plazo: 18, cuota: '793.03',   tipoTEA: 'Consumo',      desembolso: '2026-05-15', diaPago: 15 },
+  { n: 17, cliente: 'Virgilio Mamani',      monto: 13500, plazo: 12, cuota: '1,362.77', tipoTEA: 'Microempresa', desembolso: '2026-06-02', diaPago: 3  },
+  { n: 18, cliente: 'Ovidio Torres',        monto: 16000, plazo: 36, cuota: '741.70',   tipoTEA: 'Microempresa', desembolso: '2026-06-05', diaPago: 5  },
+  { n: 19, cliente: 'Dante Flores',         monto: 17000, plazo: 24, cuota: '993.00',   tipoTEA: 'Consumo',      desembolso: '2026-06-10', diaPago: 10 },
+  { n: 20, cliente: 'Laura Mendoza',        monto: 19000, plazo: 18, cuota: '1,390.89', tipoTEA: 'Microempresa', desembolso: '2026-06-15', diaPago: 15 },
+  { n: 21, cliente: 'Boccaccio Vargas',     monto: 22000, plazo: 36, cuota: '1,019.83', tipoTEA: 'Microempresa', desembolso: '2026-07-02', diaPago: 3  },
+  { n: 22, cliente: 'Orlando Ríos',         monto: 24000, plazo: 24, cuota: '1,401.88', tipoTEA: 'Consumo',      desembolso: '2026-07-05', diaPago: 5  },
+  { n: 23, cliente: 'Gerusalemme Huanca',   monto: 1500,  plazo: 6,  cuota: '277.64',   tipoTEA: 'Microempresa', desembolso: '2026-07-10', diaPago: 10 },
+  { n: 24, cliente: 'Pedro Calderón',       monto: 3500,  plazo: 12, cuota: '353.31',   tipoTEA: 'Microempresa', desembolso: '2026-07-15', diaPago: 15 },
+  { n: 25, cliente: 'Félix Chávez',         monto: 5500,  plazo: 18, cuota: '396.52',   tipoTEA: 'Consumo',      desembolso: '2026-08-02', diaPago: 3  },
+  { n: 26, cliente: 'Hildegarda Huanca',    monto: 7000,  plazo: 24, cuota: '416.93',   tipoTEA: 'Microempresa', desembolso: '2026-08-05', diaPago: 5  },
+  { n: 27, cliente: 'Stendhal Aguilar',     monto: 8500,  plazo: 12, cuota: '858.04',   tipoTEA: 'Microempresa', desembolso: '2026-08-10', diaPago: 10 },
+  { n: 28, cliente: 'Kipling Soto',         monto: 10500, plazo: 36, cuota: '473.77',   tipoTEA: 'Consumo',      desembolso: '2026-08-15', diaPago: 15 },
+  { n: 29, cliente: 'Erinná Espinoza',      monto: 14000, plazo: 18, cuota: '1,024.87', tipoTEA: 'Microempresa', desembolso: '2026-09-02', diaPago: 3  },
+  { n: 30, cliente: 'Annie Espinoza',       monto: 30000, plazo: 24, cuota: '1,786.83', tipoTEA: 'Microempresa', desembolso: '2026-09-05', diaPago: 5  },
+]
