@@ -12,7 +12,22 @@ import moraRoutes from './routes/mora.routes.js'
 
 const app = express()
 
-app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }))
+// Soporta múltiples orígenes separados por coma en CORS_ORIGIN.
+// Si la variable no existe o está vacía, permite cualquier origen (*).
+const corsOriginEnv = process.env.CORS_ORIGIN || process.env.CORS_ORIGINS || ''
+const allowedOrigins = corsOriginEnv.split(',').map(s => s.trim()).filter(Boolean)
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Peticiones sin origin (ej. Postman, curl) siempre se permiten
+    if (!origin) return callback(null, true)
+    // Si no se configuró ninguna lista, permitir todo
+    if (allowedOrigins.length === 0) return callback(null, true)
+    // Permitir si el origin de la petición está en la lista
+    if (allowedOrigins.includes(origin)) return callback(null, true)
+    callback(new Error('No permitido por CORS: ' + origin))
+  },
+}))
 app.use(express.json())
 
 app.get('/', (_req, res) => {
