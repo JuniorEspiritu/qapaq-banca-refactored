@@ -2,7 +2,12 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 
 function Forbidden({ rol }) {
-  const ROL_LABEL = { cliente: 'Cliente', asesor: 'Asesor de Negocios', comite: 'Comité de Créditos' }
+  const ROL_LABEL = { 
+    cliente: 'Cliente', 
+    asesor: 'Asesor de Negocios', 
+    comite: 'Comité de Créditos',
+    gerente: 'Gerente General'
+  }
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -20,7 +25,6 @@ function Forbidden({ rol }) {
         boxShadow: '0 20px 60px rgba(7,20,42,.12)',
         border: '1px solid rgba(0,0,0,.05)',
       }}>
-        {/* Ícono 403 */}
         <div className="f403-icon" style={{
           width: 90, height: 90, borderRadius: '50%',
           background: 'linear-gradient(135deg, #fee2e2, #fecaca)',
@@ -30,7 +34,6 @@ function Forbidden({ rol }) {
           fontSize: 40,
         }}>🔒</div>
 
-        {/* Código */}
         <div style={{
           fontSize: 72, fontWeight: 900, color: '#dc2626',
           letterSpacing: -4, lineHeight: 1, marginBottom: 8,
@@ -45,15 +48,17 @@ function Forbidden({ rol }) {
           permisos para acceder a esta sección. Solo los usuarios autorizados pueden ingresar aquí.
         </p>
 
-        {/* Franja tricolor decorativa */}
         <div style={{
           height: 4, borderRadius: 2, marginBottom: 28,
           background: 'repeating-linear-gradient(90deg,#f5c800 0px,#f5c800 20px,#07142a 20px,#07142a 40px,#dc2626 40px,#dc2626 60px)',
         }} />
 
-        {/* Botón volver */}
         <button
-          onClick={() => window.location.href = rol === 'cliente' ? '/banca' : '/asesor'}
+          onClick={() => {
+            if (rol === 'cliente') window.location.href = '/banca'
+            else if (rol === 'gerente') window.location.href = '/gerente'
+            else window.location.href = '/asesor'
+          }}
           style={{
             background: 'linear-gradient(135deg, #07142a, #163d82)',
             color: '#fff', fontSize: 14, fontWeight: 700,

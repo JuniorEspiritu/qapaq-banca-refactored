@@ -16,6 +16,8 @@ import ResueltasPage from './pages/asesor/ResueltasPage.jsx'
 import AsesorNuevaSolicitud from './pages/asesor/AsesorNuevaSolicitud.jsx'
 import MoraPage from './pages/asesor/MoraPage.jsx'
 
+import GerenteDashboard from './pages/gerente/GerenteDashboard.jsx'
+
 export default function App() {
   return (
     <Routes>
@@ -43,6 +45,13 @@ export default function App() {
         <Route path="nueva-solicitud" element={<AsesorNuevaSolicitud />} />
         <Route path="aprobadas" element={<ResueltasPage />} />
         <Route path="mora" element={<MoraPage />} />
+      </Route>
+
+      {/* Panel Gerente */}
+      <Route path="/gerente" element={
+        <ProtectedRoute roles={['gerente']}><HBLayout /></ProtectedRoute>
+      }>
+        <Route index element={<GerenteDashboard />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
