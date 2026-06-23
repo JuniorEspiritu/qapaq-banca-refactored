@@ -1,10 +1,10 @@
 import { Router } from 'express'
 import { supabase } from '../db.js'
 import { firmarToken } from '../auth.js'
+import bcrypt from 'bcryptjs'
 
 const router = Router()
 
-// POST /auth/login  { codigo, password }  (codigo = correo institucional, ej. carlos.ramirez@qapaq.pe)
 router.post('/login', async (req, res) => {
   const { codigo, password } = req.body || {}
   if (!codigo || !password) {
@@ -18,7 +18,10 @@ router.post('/login', async (req, res) => {
     .maybeSingle()
 
   if (error) return res.status(500).json({ detail: 'Error de base de datos: ' + error.message })
-  if (!usuario || usuario.password !== password) {
+
+  // CORREGIDO: comparar con bcrypt, no texto plano
+  const passwordValida = usuario && await bcrypt.compare(password, usuario.password)
+  if (!passwordValida) {
     return res.status(401).json({ detail: 'Correo o clave incorrectos.' })
   }
 
