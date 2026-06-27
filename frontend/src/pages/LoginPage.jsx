@@ -27,6 +27,49 @@ export default function LoginPage() {
     }
   }
 
+  // Genera las 12 bolitas del anillo tipo "cometa"
+  const spinnerDots = Array.from({ length: 12 }).map((_, i) => {
+    const angle = (i * 30) // 360/12
+    const fade = i / 12 // 0 = cabeza brillante, 1 = cola tenue
+    const size = 7 - fade * 5      // de 7px a 2px
+    const opacity = 1 - fade * 0.85 // de 1 a 0.15
+    const color = i < 3 ? '#fff7d6' : '#f5c800' // cabeza casi blanca, resto dorado
+    return (
+      <span
+        key={i}
+        className="q-spinner-dot"
+        style={{
+          '--size': `${size}px`,
+          '--c': color,
+          opacity,
+          transform: `rotate(${angle}deg) translate(11px, 0)`,
+        }}
+      />
+    )
+  })
+
+  const spinnerCSS = `
+    @keyframes qSpin { to { transform: rotate(360deg); } }
+    .q-spinner-ring {
+      position: relative;
+      width: 22px;
+      height: 22px;
+      display: inline-block;
+      animation: qSpin 0.9s linear infinite;
+    }
+    .q-spinner-dot {
+      position: absolute;
+      width: var(--size);
+      height: var(--size);
+      border-radius: 50%;
+      top: 50%;
+      left: 50%;
+      transform-origin: 0 0;
+      background: var(--c);
+      box-shadow: 0 0 6px var(--c);
+    }
+  `
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -35,6 +78,7 @@ export default function LoginPage() {
       flexDirection: 'column',
       fontFamily: 'Inter, sans-serif',
     }}>
+      <style>{spinnerCSS}</style>
 
       {/* Header */}
       <div style={{ padding: '14px 32px', display: 'flex', alignItems: 'center' }}>
@@ -233,11 +277,19 @@ export default function LoginPage() {
                   letterSpacing: .3,
                   boxShadow: loading ? 'none' : '0 4px 16px rgba(245,200,0,.45)',
                   transition: 'transform .15s, box-shadow .15s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
                 onMouseEnter={e => { if (!loading) { e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow='0 8px 24px rgba(245,200,0,.55)' }}}
                 onMouseLeave={e => { e.currentTarget.style.transform='none'; e.currentTarget.style.boxShadow='0 4px 16px rgba(245,200,0,.45)' }}
               >
-                {loading ? 'Ingresando…' : 'Ingresar →'}
+                {loading ? (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+                    <span className="q-spinner-ring">{spinnerDots}</span>
+                    Ingresando…
+                  </span>
+                ) : 'Ingresar →'}
               </button>
             </form>
 
