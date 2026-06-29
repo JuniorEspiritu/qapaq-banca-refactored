@@ -29,7 +29,7 @@ const CSS = `
   ════════════════════════════════ */
   .hp-hero {
     background: linear-gradient(160deg, #06112b 0%, #0d1f4a 40%, #1a3d88 75%, #1e4fa8 100%);
-    padding: 36px 22px 40px;
+    padding: 28px 20px 36px;
     position: relative;
     overflow: hidden;
   }
@@ -96,7 +96,7 @@ const CSS = `
 
   /* Tarjeta ahorro */
   .hp-prod-card {
-    min-width: 220px; flex-shrink: 0;
+    min-width: calc(75vw); flex-shrink: 0;
     border-radius: 20px; padding: 22px 20px;
     cursor: pointer; position: relative; overflow: hidden;
     transition: transform .2s, box-shadow .2s;
@@ -126,7 +126,7 @@ const CSS = `
     text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 4px;
   }
   .hp-prod-amt {
-    font-size: clamp(20px, 5.5vw, 26px);
+    font-size: clamp(24px, 7vw, 28px);
     font-weight: 900; color: #fff; letter-spacing: -1px;
     margin-bottom: 18px; transition: filter .2s;
   }
@@ -149,7 +149,7 @@ const CSS = `
   ════════════════════════════════ */
   .hp-body {
     background: #f0f3f8;
-    padding: 24px 18px 56px;
+    padding: 24px 16px 56px;
   }
 
   /* ── Acciones rápidas ── */
