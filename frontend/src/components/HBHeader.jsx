@@ -27,8 +27,8 @@ const ROL_LABEL = {
 
 export default function HBHeader() {
   const { user, rol, logout } = useAuth()
-  const navigate = useNavigate()
-  const location = useLocation()
+  const navigate  = useNavigate()
+  const location  = useLocation()
   const [time, setTime] = useState(new Date())
 
   useEffect(() => {
@@ -54,12 +54,16 @@ export default function HBHeader() {
             #0c1e3e 18px, #0c1e3e 36px,
             #dc2626 36px, #dc2626 54px);
         }
+
+        /* ── TOP BAR ── */
         .hb-top-v2 {
           display: flex; align-items: center;
           justify-content: space-between;
           max-width: 1320px; margin: 0 auto;
-          padding: 12px 32px; gap: 16px; flex-wrap: wrap;
+          padding: 12px 32px;
+          gap: 16px;
         }
+
         /* Logo */
         .hb-logo-v2 {
           display: flex; align-items: center; gap: 12px;
@@ -67,6 +71,7 @@ export default function HBHeader() {
           font-weight: 900; font-size: 19px;
           letter-spacing: .5px;
           transition: opacity .15s;
+          flex-shrink: 0;
         }
         .hb-logo-v2:hover { opacity: .85; }
         .hb-logo-badge-v2 {
@@ -83,6 +88,7 @@ export default function HBHeader() {
         /* User info */
         .hb-user-v2 {
           display: flex; align-items: center; gap: 14px;
+          flex-shrink: 0;
         }
         .hb-user-text { text-align: right; }
         .hb-user-name { font-size: 14px; font-weight: 700; color: #fff; }
@@ -104,6 +110,7 @@ export default function HBHeader() {
           color: #fff; font-size: 12px; font-weight: 700;
           padding: 8px 18px; border-radius: 8px;
           cursor: pointer; font-family: inherit;
+          white-space: nowrap;
           transition: background .15s, border-color .15s, transform .15s;
         }
         .hb-logout-v2:hover {
@@ -112,7 +119,7 @@ export default function HBHeader() {
           transform: scale(1.04);
         }
 
-        /* ── NAV MENU REDESIGN ── */
+        /* ── NAV TABS ── */
         .hb-menu-v2 {
           display: flex; gap: 0;
           justify-content: center;
@@ -145,21 +152,16 @@ export default function HBHeader() {
                       right .22s cubic-bezier(.22,1,.36,1);
         }
         .hb-menu-btn:hover { color: #fff; background: rgba(255,255,255,.06); }
-        .hb-menu-btn:hover::after { left: 12px; right: 12px; }
-        .hb-menu-btn.active {
-          color: #fff;
-          background: rgba(255,255,255,.08);
-        }
+        .hb-menu-btn:hover::after  { left: 12px; right: 12px; }
+        .hb-menu-btn.active { color: #fff; background: rgba(255,255,255,.08); }
         .hb-menu-btn.active::after { left: 12px; right: 12px; }
 
-        /* Ícono dentro del menú — pequeño círculo */
         .hb-menu-ico {
           width: 30px; height: 30px;
           border-radius: 8px;
           background: rgba(255,255,255,.1);
           display: grid; place-items: center;
-          font-size: 15px;
-          flex-shrink: 0;
+          font-size: 15px; flex-shrink: 0;
           transition: background .18s, transform .18s;
         }
         .hb-menu-btn:hover .hb-menu-ico {
@@ -172,18 +174,64 @@ export default function HBHeader() {
           box-shadow: 0 0 0 1px rgba(245,200,0,.3);
         }
 
-        @media(max-width:768px){
-          .hb-menu-btn { padding: 12px 12px; font-size: 11px; gap: 6px; }
-          .hb-menu-ico { width: 26px; height: 26px; font-size: 13px; }
-          .hb-top-v2   { padding: 10px 16px; }
-          .hb-menu-v2  { padding: 0 10px; overflow-x: auto; }
+        /* ══════════════════════════════
+           MÓVIL — < 768px
+        ══════════════════════════════ */
+        @media (max-width: 767px) {
+
+          /* Top: una sola fila compacta */
+          .hb-top-v2 {
+            padding: 9px 14px;
+            gap: 0;
+            justify-content: space-between;
+          }
+
+          /* Logo más pequeño */
+          .hb-logo-v2       { font-size: 15px; gap: 8px; }
+          .hb-logo-badge-v2 { width: 32px; height: 32px; font-size: 13px; border-radius: 8px; }
+          .hb-logo-sub      { font-size: 8.5px; }
+
+          /* Usuario: solo nombre + badge, sin hora */
+          .hb-user-v2   { gap: 8px; }
+          .hb-user-name { font-size: 12px; }
+          .hb-user-time { display: none; }
+          .hb-role-badge { font-size: 7.5px; padding: 2px 7px; letter-spacing: 1px; }
+
+          /* Botón Salir compacto */
+          .hb-logout-v2 { padding: 7px 11px; font-size: 11px; gap: 4px; }
+
+          /* Tabs: scroll horizontal, centrado desactivado */
+          .hb-menu-v2 {
+            justify-content: flex-start;
+            padding: 0 4px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+          }
+          .hb-menu-v2::-webkit-scrollbar { display: none; }
+
+          .hb-menu-btn {
+            padding: 10px 10px;
+            font-size: 10.5px;
+            gap: 6px;
+            flex-shrink: 0;
+          }
+          .hb-menu-btn::after { display: none; }
+          .hb-menu-btn.active {
+            border-bottom: 2.5px solid #f5c800;
+            color: #fff;
+          }
+          .hb-menu-ico {
+            width: 24px; height: 24px;
+            font-size: 12px; border-radius: 6px;
+          }
         }
       `}</style>
 
       <div className="hb-header-v2">
         <div className="hb-franja-v2" />
 
-        {/* Top bar */}
+        {/* ── Top bar ── */}
         <div className="hb-top-v2">
           <Link to={rol === 'cliente' ? '/banca' : '/asesor'} className="hb-logo-v2">
             <div className="hb-logo-badge-v2">Q</div>
@@ -209,7 +257,7 @@ export default function HBHeader() {
           </div>
         </div>
 
-        {/* Nav menu horizontal con línea */}
+        {/* ── Nav tabs ── */}
         <div className="hb-menu-v2">
           {menu.map((m) => {
             const active = location.pathname === m.to

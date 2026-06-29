@@ -2,6 +2,284 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 
+/* ─── Estilos globales inyectados ─────────────────────────────────────────── */
+const GLOBAL_CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  @keyframes qSpin   { to { transform: rotate(360deg); } }
+  @keyframes fadeIn  { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  @keyframes shake   { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-6px)} 40%,80%{transform:translateX(6px)} }
+
+  .q-page {
+    min-height: 100vh;
+    font-family: 'Inter', sans-serif;
+    background: #f0f2f5;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Topbar ── */
+  .q-topbar {
+    background: #f5c800;
+    padding: 0 20px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .q-topbar-logo { display: flex; flex-direction: column; line-height: 1; }
+  .q-topbar-logo-name { font-size: 22px; font-weight: 900; color: #111; letter-spacing: 1px; }
+  .q-topbar-logo-sub  { font-size: 9px; color: #dc2626; font-style: italic; font-weight: 700; }
+  .q-topbar-tag {
+    background: #1a3a6b;
+    color: #f5c800;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 5px 12px;
+    border-radius: 20px;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+  }
+
+  /* ── Franja tricolor ── */
+  .q-stripe {
+    height: 4px;
+    background: repeating-linear-gradient(
+      90deg,
+      #e8a020 0px, #e8a020 20px,
+      #1a3a6b 20px, #1a3a6b 40px,
+      #dc2626 40px, #dc2626 60px
+    );
+    flex-shrink: 0;
+  }
+
+  /* ── Body ── */
+  .q-body {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px 40px;
+    gap: 56px;
+  }
+
+  /* ── Ilustración (solo desktop) ── */
+  .q-illustration {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    flex-shrink: 0;
+  }
+  .q-illustration-circle {
+    width: 300px; height: 300px;
+    border-radius: 50%;
+    background: #d4a800;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+    box-shadow: 0 12px 40px rgba(0,0,0,.18);
+  }
+  .q-illustration-badge {
+    background: #dc2626;
+    color: #fff;
+    font-weight: 800;
+    font-size: 16px;
+    padding: 13px 48px;
+    border-radius: 8px;
+    letter-spacing: .5px;
+    box-shadow: 0 4px 18px rgba(220,38,38,.35);
+    text-align: center;
+  }
+
+  /* ── Card formulario ── */
+  .q-card {
+    width: 100%;
+    max-width: 400px;
+    background: #fff;
+    border-radius: 20px;
+    padding: 28px 24px 24px;
+    box-shadow: 0 8px 40px rgba(0,0,0,.12);
+    animation: fadeIn .35s ease both;
+  }
+
+  /* ── Card header ── */
+  .q-card-header {
+    text-align: center;
+    margin-bottom: 22px;
+  }
+  .q-card-logo-name { font-size: 28px; font-weight: 900; color: #111827; letter-spacing: 1px; }
+  .q-card-logo-sub  { font-size: 9.5px; color: #dc2626; font-style: italic; font-weight: 700; margin-bottom: 14px; }
+  .q-card-title { font-size: 17px; font-weight: 800; color: #111827; margin-bottom: 2px; }
+  .q-card-sub   { font-size: 12.5px; color: #6b7280; }
+
+  /* ── Divider ── */
+  .q-divider {
+    height: 3px;
+    background: repeating-linear-gradient(
+      90deg,
+      #e8a020 0px, #e8a020 20px,
+      #1a3a6b 20px, #1a3a6b 40px,
+      #dc2626 40px, #dc2626 60px
+    );
+    border-radius: 2px;
+    margin-bottom: 20px;
+  }
+
+  /* ── Error ── */
+  .q-error {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fca5a5;
+    border-left: 3px solid #ef4444;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    margin-bottom: 16px;
+    animation: shake .35s ease;
+  }
+
+  /* ── Campos ── */
+  .q-field { margin-bottom: 14px; }
+  .q-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: #374151;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+  }
+  .q-input-wrap { position: relative; }
+  .q-input-icon {
+    position: absolute; left: 12px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px; pointer-events: none;
+    display: flex; align-items: center;
+  }
+  .q-input {
+    width: 100%;
+    padding: 12px 14px 12px 38px;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    background: #fafbfc;
+    color: #111827;
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+    -webkit-appearance: none;
+  }
+  .q-input:focus {
+    border-color: #f5c800;
+    box-shadow: 0 0 0 3px rgba(245,200,0,.18);
+  }
+  .q-input-pw { padding-right: 44px; }
+  .q-eye-btn {
+    position: absolute; right: 12px; top: 50%;
+    transform: translateY(-50%);
+    background: none; border: none;
+    cursor: pointer; font-size: 15px;
+    color: #9ca3af; padding: 2px;
+    line-height: 1;
+  }
+
+  /* ── Botón submit ── */
+  .q-btn-submit {
+    width: 100%;
+    background: #f5c800;
+    color: #111827;
+    font-size: 15px;
+    font-weight: 800;
+    padding: 14px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: .3px;
+    box-shadow: 0 4px 16px rgba(245,200,0,.4);
+    transition: transform .15s, box-shadow .15s, background .15s;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    margin-top: 8px;
+  }
+  .q-btn-submit:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(245,200,0,.55);
+  }
+  .q-btn-submit:active:not(:disabled) { transform: translateY(0); }
+  .q-btn-submit:disabled { background: #e5e7eb; color: #9ca3af; cursor: not-allowed; box-shadow: none; }
+
+  /* ── Volver ── */
+  .q-back-btn {
+    background: none; border: none;
+    color: #9ca3af; font-size: 12px;
+    cursor: pointer; font-family: 'Inter', sans-serif;
+    margin-top: 14px; width: 100%;
+    text-align: center; padding: 6px;
+    transition: color .15s;
+  }
+  .q-back-btn:hover { color: #6b7280; }
+
+  /* ── Footer ── */
+  .q-footer {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 11px;
+    color: rgba(0,0,0,.3);
+  }
+
+  /* ── SBS badge ── */
+  .q-sbs-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 11px;
+    color: #166534;
+    font-weight: 600;
+    margin-top: 14px;
+  }
+
+  /* ── Spinner bolitas ── */
+  .q-spinner-ring {
+    position: relative;
+    width: 20px; height: 20px;
+    display: inline-block;
+    animation: qSpin 0.9s linear infinite;
+    flex-shrink: 0;
+  }
+  .q-spinner-dot {
+    position: absolute;
+    width: var(--size); height: var(--size);
+    border-radius: 50%;
+    top: 50%; left: 50%;
+    transform-origin: 0 0;
+    background: var(--c);
+    box-shadow: 0 0 5px var(--c);
+  }
+
+  /* ── Desktop breakpoint ── */
+  @media (min-width: 768px) {
+    .q-topbar { padding: 0 40px; height: 64px; }
+    .q-topbar-logo-name { font-size: 26px; }
+    .q-topbar-tag { font-size: 11px; }
+    .q-illustration { display: flex; }
+    .q-body { padding: 40px 40px 60px; }
+    .q-card { padding: 32px 30px 28px; }
+    .q-card-logo-name { font-size: 30px; }
+    .q-card-title { font-size: 19px; }
+  }
+
+  @media (min-width: 1024px) {
+    .q-body { gap: 72px; }
+  }
+`
+
 export default function LoginPage() {
   const navigate = useNavigate()
   const { login } = useAuth()
@@ -17,7 +295,7 @@ export default function LoginPage() {
     setLoading(true)
     try {
       const usuario = await login(codigo.trim(), pw)
-      if (usuario.rol === 'cliente') navigate('/banca')
+      if (usuario.rol === 'cliente')   navigate('/banca')
       else if (usuario.rol === 'gerente') navigate('/gerente')
       else navigate('/asesor')
     } catch (ex) {
@@ -27,96 +305,44 @@ export default function LoginPage() {
     }
   }
 
-  // Genera las 12 bolitas del anillo tipo "cometa"
+  // Spinner tipo cometa
   const spinnerDots = Array.from({ length: 12 }).map((_, i) => {
-    const angle = (i * 30) // 360/12
-    const fade = i / 12 // 0 = cabeza brillante, 1 = cola tenue
-    const size = 7 - fade * 5      // de 7px a 2px
-    const opacity = 1 - fade * 0.85 // de 1 a 0.15
-    const color = i < 3 ? '#fff7d6' : '#f5c800' // cabeza casi blanca, resto dorado
+    const angle   = i * 30
+    const fade    = i / 12
+    const size    = 6 - fade * 4
+    const opacity = 1 - fade * 0.85
+    const color   = i < 3 ? '#fff7d6' : '#f5c800'
     return (
-      <span
-        key={i}
-        className="q-spinner-dot"
-        style={{
-          '--size': `${size}px`,
-          '--c': color,
-          opacity,
-          transform: `rotate(${angle}deg) translate(11px, 0)`,
-        }}
-      />
+      <span key={i} className="q-spinner-dot" style={{
+        '--size': `${size}px`, '--c': color,
+        opacity,
+        transform: `rotate(${angle}deg) translate(10px, 0)`,
+      }} />
     )
   })
 
-  const spinnerCSS = `
-    @keyframes qSpin { to { transform: rotate(360deg); } }
-    .q-spinner-ring {
-      position: relative;
-      width: 22px;
-      height: 22px;
-      display: inline-block;
-      animation: qSpin 0.9s linear infinite;
-    }
-    .q-spinner-dot {
-      position: absolute;
-      width: var(--size);
-      height: var(--size);
-      border-radius: 50%;
-      top: 50%;
-      left: 50%;
-      transform-origin: 0 0;
-      background: var(--c);
-      box-shadow: 0 0 6px var(--c);
-    }
-  `
-
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: '#f5c800',
-      display: 'flex',
-      flexDirection: 'column',
-      fontFamily: 'Inter, sans-serif',
-    }}>
-      <style>{spinnerCSS}</style>
+    <div className="q-page">
+      <style>{GLOBAL_CSS}</style>
 
-      {/* Header */}
-      <div style={{ padding: '14px 32px', display: 'flex', alignItems: 'center' }}>
-        <div>
-          <div style={{ fontSize: 26, fontWeight: 900, color: '#111', letterSpacing: 1 }}>QAPAQ</div>
-          <div style={{ fontSize: 10, color: '#dc2626', fontStyle: 'italic', fontWeight: 600 }}>una financiera solidaria</div>
+      {/* ── Topbar ── */}
+      <header className="q-topbar">
+        <div className="q-topbar-logo">
+          <span className="q-topbar-logo-name">QAPAQ</span>
+          <span className="q-topbar-logo-sub">una financiera solidaria</span>
         </div>
-      </div>
+        <span className="q-topbar-tag">🔒 Acceso seguro</span>
+      </header>
 
-      {/* Franja */}
-      <div style={{
-        height: 5,
-        background: 'repeating-linear-gradient(90deg,#e8a020 0px,#e8a020 20px,#1a3a6b 20px,#1a3a6b 40px,#dc2626 40px,#dc2626 60px)',
-      }} />
+      {/* ── Franja tricolor ── */}
+      <div className="q-stripe" />
 
-      {/* Cuerpo centrado */}
-      <div style={{
-        flex: 1,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '32px 24px',
-        gap: 60,
-      }}>
+      {/* ── Cuerpo ── */}
+      <main className="q-body">
 
-        {/* Ilustración izquierda */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
-          <div style={{
-            width: 280, height: 280,
-            borderRadius: '50%',
-            background: '#d4a800',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            position: 'relative',
-            overflow: 'hidden',
-            boxShadow: '0 8px 32px rgba(0,0,0,.15)',
-          }}>
+        {/* Ilustración — solo visible en ≥ 768px */}
+        <div className="q-illustration">
+          <div className="q-illustration-circle">
             <svg viewBox="0 0 260 220" width="230" height="200" xmlns="http://www.w3.org/2000/svg">
               <rect x="40" y="110" width="180" height="100" rx="10" fill="#d1d5db"/>
               <rect x="50" y="118" width="160" height="82" rx="6" fill="#1a3a6b"/>
@@ -155,75 +381,43 @@ export default function LoginPage() {
               <path d="M105 100 q3 2 6 0" stroke="#92400e" strokeWidth="1" fill="none" strokeLinecap="round"/>
               <rect x="96" y="109" width="24" height="34" rx="5" fill="#7c3aed"/>
             </svg>
-            <div style={{ position:'absolute', top:14, left:20, width:10, height:10, borderRadius:'50%', background:'#dc2626', opacity:.7 }}/>
-            <div style={{ position:'absolute', top:30, right:16, width:7, height:7, borderRadius:'50%', background:'#1a3a6b', opacity:.6 }}/>
+            <div style={{ position:'absolute', top:14,  left:20,  width:10, height:10, borderRadius:'50%', background:'#dc2626', opacity:.7 }}/>
+            <div style={{ position:'absolute', top:30,  right:16, width:7,  height:7,  borderRadius:'50%', background:'#1a3a6b', opacity:.6 }}/>
             <div style={{ position:'absolute', bottom:20, left:16, width:8, height:8, borderRadius:'50%', background:'#16a34a', opacity:.6 }}/>
           </div>
-
-          <div style={{
-            background: '#dc2626',
-            color: '#fff',
-            fontWeight: 800,
-            fontSize: 17,
-            padding: '12px 52px',
-            borderRadius: 8,
-            marginTop: 12,
-            letterSpacing: .5,
-            boxShadow: '0 4px 16px rgba(220,38,38,.4)',
-          }}>
-            Banca por Internet
+          <div className="q-illustration-badge">Banca por Internet</div>
+          <div className="q-sbs-badge">
+            <span>✅</span> Supervisada por la SBS del Perú
           </div>
         </div>
 
-        {/* Formulario derecha */}
-        <div style={{ width: 400, flexShrink: 0 }}>
-          <div style={{
-            background: '#fff',
-            borderRadius: 18,
-            padding: '32px 30px',
-            boxShadow: '0 20px 60px rgba(0,0,0,.18)',
-          }}>
-            <div style={{
-              height: 4,
-              background: 'repeating-linear-gradient(90deg,#e8a020 0px,#e8a020 20px,#1a3a6b 20px,#1a3a6b 40px,#dc2626 40px,#dc2626 60px)',
-              borderRadius: 2,
-              marginBottom: 22,
-            }}/>
+        {/* ── Formulario ── */}
+        <div style={{ width: '100%', maxWidth: 400, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div className="q-card">
+            <div className="q-divider" />
 
-            <div style={{ textAlign:'center', marginBottom: 16 }}>
-              <div style={{ fontSize: 26, fontWeight: 900, color: '#111827', letterSpacing: 1 }}>QAPAQ</div>
-              <div style={{ fontSize: 10, color: '#dc2626', fontStyle: 'italic', fontWeight: 600, marginBottom: 8 }}>una financiera solidaria</div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#111827' }}>Ingresa a tu cuenta</div>
-              <div style={{ fontSize: 12.5, color: '#6b7280', marginTop: 4 }}>Correo institucional y clave</div>
+            <div className="q-card-header">
+              <div className="q-card-logo-name">QAPAQ</div>
+              <div className="q-card-logo-sub">una financiera solidaria</div>
+              <div className="q-card-title">Ingresa a tu cuenta</div>
+              <div className="q-card-sub">Usa tu correo institucional y clave</div>
             </div>
 
             {err && (
-              <div style={{
-                background:'#fee2e2', color:'#991b1b',
-                border:'1px solid #fca5a5', borderLeft:'3px solid #ef4444',
-                borderRadius:8, padding:'10px 14px', fontSize:13, marginBottom:14,
-              }}>⚠️ {err}</div>
+              <div className="q-error" key={err}>⚠️ {err}</div>
             )}
 
             <form onSubmit={onSubmit} autoComplete="off">
-              <div style={{ marginBottom: 14 }}>
-                <label style={{ display:'block', fontSize:11.5, fontWeight:700, color:'#374151', marginBottom:5, textTransform:'uppercase', letterSpacing:'.4px' }}>
-                  Correo institucional
-                </label>
-                <div style={{ position:'relative' }}>
-                  <span style={{ position:'absolute', left:12, top:'50%', transform:'translateY(-50%)', fontSize:14 }}>📧</span>
+              {/* Correo */}
+              <div className="q-field">
+                <label className="q-label" htmlFor="q-email">Correo institucional</label>
+                <div className="q-input-wrap">
+                  <span className="q-input-icon">📧</span>
                   <input
-                    style={{
-                      width:'100%', padding:'11px 14px 11px 38px',
-                      border:'1.5px solid #e5e7eb', borderRadius:8,
-                      fontSize:13.5, fontFamily:'Inter,sans-serif',
-                      background:'#fafbfc', color:'#111827',
-                      outline:'none', boxSizing:'border-box',
-                    }}
-                    onFocus={e => e.target.style.borderColor='#f5c800'}
-                    onBlur={e  => e.target.style.borderColor='#e5e7eb'}
+                    id="q-email"
+                    className="q-input"
                     type="email"
-                    placeholder="Ej. carlos.ramirez@qapaq.pe"
+                    placeholder="carlos.ramirez@qapaq.pe"
                     value={codigo}
                     onChange={e => setCodigo(e.target.value)}
                     required autoFocus autoComplete="off"
@@ -231,81 +425,57 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <div style={{ marginBottom: 22 }}>
-                <label style={{ display:'block', fontSize:11.5, fontWeight:700, color:'#374151', marginBottom:5, textTransform:'uppercase', letterSpacing:'.4px' }}>
-                  Clave
-                </label>
-                <div style={{ position:'relative' }}>
-                  <span style={{ position:'absolute', left:12, top:'50%', transform:'translateY(-50%)', fontSize:14 }}>🔒</span>
+              {/* Clave */}
+              <div className="q-field" style={{ marginBottom: 20 }}>
+                <label className="q-label" htmlFor="q-pw">Clave</label>
+                <div className="q-input-wrap">
+                  <span className="q-input-icon">🔒</span>
                   <input
-                    style={{
-                      width:'100%', padding:'11px 40px 11px 38px',
-                      border:'1.5px solid #e5e7eb', borderRadius:8,
-                      fontSize:13.5, fontFamily:'Inter,sans-serif',
-                      background:'#fafbfc', color:'#111827',
-                      outline:'none', boxSizing:'border-box',
-                    }}
-                    onFocus={e => e.target.style.borderColor='#f5c800'}
-                    onBlur={e  => e.target.style.borderColor='#e5e7eb'}
+                    id="q-pw"
+                    className="q-input q-input-pw"
                     type={showPw ? 'text' : 'password'}
                     placeholder="••••••••"
                     value={pw}
                     onChange={e => setPw(e.target.value)}
                     required autoComplete="new-password"
                   />
-                  <button type="button" tabIndex={-1}
+                  <button type="button" tabIndex={-1} className="q-eye-btn"
                     onClick={() => setShowPw(v => !v)}
-                    style={{ position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', fontSize:15, color:'#9ca3af' }}
-                  >{showPw ? '🙈' : '👁'}</button>
+                    aria-label={showPw ? 'Ocultar clave' : 'Mostrar clave'}
+                  >
+                    {showPw ? '🙈' : '👁️'}
+                  </button>
                 </div>
               </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                style={{
-                  width:'100%',
-                  background: loading ? '#d1d5db' : '#f5c800',
-                  color: '#111',
-                  fontSize: 15,
-                  fontWeight: 800,
-                  padding: '13px',
-                  borderRadius: 8,
-                  border: 'none',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  fontFamily: 'Inter,sans-serif',
-                  letterSpacing: .3,
-                  boxShadow: loading ? 'none' : '0 4px 16px rgba(245,200,0,.45)',
-                  transition: 'transform .15s, box-shadow .15s',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-                onMouseEnter={e => { if (!loading) { e.currentTarget.style.transform='translateY(-2px)'; e.currentTarget.style.boxShadow='0 8px 24px rgba(245,200,0,.55)' }}}
-                onMouseLeave={e => { e.currentTarget.style.transform='none'; e.currentTarget.style.boxShadow='0 4px 16px rgba(245,200,0,.45)' }}
-              >
+              <button type="submit" className="q-btn-submit" disabled={loading}>
                 {loading ? (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+                  <>
                     <span className="q-spinner-ring">{spinnerDots}</span>
                     Ingresando…
-                  </span>
+                  </>
                 ) : 'Ingresar →'}
               </button>
             </form>
 
-            <div style={{ textAlign:'center', marginTop:16 }}>
-              <button onClick={() => navigate('/')}
-                style={{ background:'none', border:'none', color:'#6b7280', fontSize:12, cursor:'pointer', fontFamily:'Inter,sans-serif' }}>
-                ← Volver al inicio
-              </button>
-            </div>
+            <button className="q-back-btn" onClick={() => navigate('/')}>
+              ← Volver al inicio
+            </button>
           </div>
 
-          <div style={{ textAlign:'center', marginTop:12, fontSize:11, color:'rgba(0,0,0,.35)' }}>
+          {/* Footer bajo la card */}
+          <div className="q-footer" style={{ marginTop: 12 }}>
             © 2026 Financiera Qapaq S.A. · Supervisada por la SBS
           </div>
+
+          {/* Badge SBS solo en móvil (en desktop va junto a la ilustración) */}
+          <div className="q-sbs-badge" style={{ marginTop: 10 }}
+               /* ocultar en desktop con un truco inline */ >
+            <style>{`@media(min-width:768px){.q-sbs-mobile{display:none!important;}}`}</style>
+            <span>✅</span> Entidad supervisada por la SBS del Perú
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

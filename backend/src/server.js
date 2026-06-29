@@ -31,7 +31,7 @@ app.use(cors({
 app.use(express.json())
 
 app.get('/', (_req, res) => {
-  res.json({ ok: true, servicio: 'Qapaq Banca — Core API', hora: new Date().toISOString() })
+  res.json({ sistema: 'Core Financiero QAPAQ', version: '1.0.0', status: 'ok' })
 })
 
 app.use('/auth', authRoutes)
