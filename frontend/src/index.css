@@ -1329,3 +1329,113 @@ hr.sec-div{border:none;border-top:1px solid var(--q-border);margin:0}
 .login-back button{background:none;border:none;color:#6b7280;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:color .15s;font-family:inherit}
 .login-back button:hover{color:#0f2447}
 .login-footer-note{margin-top:24px;font-size:11px;color:rgba(255,255,255,.45);text-align:center}
+/* ══════════════════════════════════════════════════════════════
+   MOBILE FIX — pegar al final de index.css
+   Arregla login y landing en pantallas < 768px
+══════════════════════════════════════════════════════════════ */
+
+/* ── LOGIN mobile ── */
+@media (max-width: 767px) {
+
+  /* Anula el layout split viejo que interfiere */
+  .login-page-bg  { display: none !important; }
+  .login-split    { display: none !important; }
+
+  /* Nuevo login: columna centrada */
+  .q-page {
+    min-height: 100vh;
+    background: #f0f2f5 !important;
+  }
+  .q-body {
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 0 !important;
+    padding: 20px 16px 32px !important;
+  }
+  .q-illustration {
+    display: none !important;
+  }
+  .q-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 16px !important;
+    padding: 24px 20px !important;
+  }
+}
+
+/* ── LANDING mobile ── */
+@media (max-width: 767px) {
+
+  /* Topbar: solo logo + botón abrir cuenta + hamburger */
+  .q-top {
+    padding: 10px 14px !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 500 !important;
+  }
+
+  /* Navbar desktop → oculta en móvil */
+  .q-nav-desktop { display: none !important; }
+
+  /* Hero más compacto */
+  .q-hero {
+    aspect-ratio: 4 / 3 !important;
+    max-height: 340px !important;
+  }
+  .q-hero-body { padding: 0 16px !important; }
+  .q-hero-left { max-width: 100% !important; }
+  .q-chip      { display: none !important; }
+
+  /* Quick: scroll horizontal */
+  .q-quick {
+    flex-direction: column !important;
+    padding: 14px 12px !important;
+  }
+  .q-quick-cards {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    width: 100% !important;
+    scrollbar-width: none !important;
+  }
+  .q-quick-cards::-webkit-scrollbar { display: none !important; }
+
+  /* Stats: grid 2x2 */
+  .q-stats {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .q-stat {
+    border-right: 1px solid #e5e7eb !important;
+    border-bottom: 1px solid #e5e7eb !important;
+    padding: 16px 10px !important;
+  }
+  .q-stat:nth-child(even) { border-right: none !important; }
+  .q-stat:nth-last-child(-n+2) { border-bottom: none !important; }
+
+  /* Productos: 2 col */
+  .q-pgrid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+  .q-pcard-desc { display: none !important; }
+
+  /* Qambios: 2 col */
+  .q-qgrid { grid-template-columns: 1fr 1fr !important; }
+
+  /* Banner: columna */
+  .q-banner { flex-direction: column !important; padding: 20px 16px !important; }
+
+  /* Footer: 2 col */
+  .q-fgrid { grid-template-columns: 1fr 1fr !important; }
+
+  /* Section padding */
+  .q-section { padding: 24px 14px !important; }
+}
+
+/* ── HOMEBANKING mobile ── */
+@media (max-width: 700px) {
+  .hb-main { padding: 16px 12px 48px !important; }
+  .hb-layout-2 { grid-template-columns: 1fr !important; }
+  .hb-page-title { font-size: 20px !important; }
+}
