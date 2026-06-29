@@ -1,425 +1,706 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import * as api from '../../lib/api.js'
-import { fmt } from '../../lib/format.js'
-import Badge from '../../components/Badge.jsx'
+import { fmt, fmtDate, fmtDateTime } from '../../lib/format.js'
 import Icon from '../../components/Icon.jsx'
+
+/* ─── helpers ─────────────────────────────────────────────── */
+const tipoColor = (desc = '') => {
+  const d = desc.toLowerCase()
+  if (d.includes('depósito') || d.includes('deposito') || d.includes('abono') || d.includes('recib'))
+    return { bg: '#dcfce7', color: '#15803d', sign: '+' }
+  if (d.includes('retiro') || d.includes('pago') || d.includes('cargo') || d.includes('transf') || d.includes('débito'))
+    return { bg: '#fee2e2', color: '#b91c1c', sign: '-' }
+  return { bg: '#f0f2f8', color: '#374151', sign: '' }
+}
+
+const CSS = `
+  .hp * { box-sizing: border-box; }
+  .hp {
+    font-family: 'Inter', sans-serif;
+    background: #f0f3f8;
+    min-height: 100vh;
+    margin: -36px -32px -72px;   /* anula el padding del hb-main */
+  }
+
+  /* ════════════════════════════════
+     HERO — azul oscuro, ocupa todo el ancho
+  ════════════════════════════════ */
+  .hp-hero {
+    background: linear-gradient(160deg, #06112b 0%, #0d1f4a 40%, #1a3d88 75%, #1e4fa8 100%);
+    padding: 36px 22px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hp-hero::after {
+    content: '';
+    position: absolute; bottom: -1px; left: 0; right: 0;
+    height: 28px;
+    background: #f0f3f8;
+    border-radius: 28px 28px 0 0;
+  }
+  /* Destellos de fondo */
+  .hp-hero-glow1 {
+    position: absolute; top: -80px; right: -80px;
+    width: 260px; height: 260px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(245,200,0,.15) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hp-hero-glow2 {
+    position: absolute; bottom: 20px; left: -60px;
+    width: 180px; height: 180px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(59,130,246,.2) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  /* Saludo */
+  .hp-greeting-row {
+    display: flex; align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 4px;
+    position: relative; z-index: 1;
+  }
+  .hp-greeting-sub { font-size: 13px; color: rgba(255,255,255,.55); margin-bottom: 3px; }
+  .hp-greeting-name { font-size: 28px; font-weight: 900; color: #fff; letter-spacing: -1px; }
+
+  .hp-eye-btn {
+    background: rgba(255,255,255,.12);
+    border: 1px solid rgba(255,255,255,.2);
+    color: rgba(255,255,255,.85);
+    font-size: 11px; font-weight: 600;
+    padding: 7px 13px; border-radius: 20px;
+    cursor: pointer; font-family: inherit;
+    display: flex; align-items: center; gap: 5px;
+    transition: background .15s; white-space: nowrap; flex-shrink: 0;
+  }
+  .hp-eye-btn:hover { background: rgba(255,255,255,.22); }
+
+  /* Label "Mis productos" */
+  .hp-productos-label {
+    font-size: 10.5px; font-weight: 700;
+    color: rgba(255,255,255,.45);
+    letter-spacing: 1.5px; text-transform: uppercase;
+    margin: 22px 0 12px;
+    position: relative; z-index: 1;
+  }
+
+  /* Tarjetas de producto — scroll horizontal */
+  .hp-products-scroll {
+    display: flex; gap: 12px;
+    overflow-x: auto; padding-bottom: 8px;
+    scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    position: relative; z-index: 1;
+  }
+  .hp-products-scroll::-webkit-scrollbar { display: none; }
+
+  /* Tarjeta ahorro */
+  .hp-prod-card {
+    min-width: 220px; flex-shrink: 0;
+    border-radius: 20px; padding: 22px 20px;
+    cursor: pointer; position: relative; overflow: hidden;
+    transition: transform .2s, box-shadow .2s;
+  }
+  .hp-prod-card:hover { transform: translateY(-3px); }
+  .hp-prod-card.ahorro {
+    background: linear-gradient(135deg, #1044a8, #2563eb);
+    box-shadow: 0 8px 28px rgba(16,68,168,.45);
+  }
+  .hp-prod-card.credito {
+    background: linear-gradient(135deg, #3b0764, #6d28d9);
+    box-shadow: 0 8px 28px rgba(109,40,217,.45);
+  }
+  .hp-prod-card::before {
+    content: ''; position: absolute; top: -30px; right: -30px;
+    width: 110px; height: 110px; border-radius: 50%;
+    background: rgba(255,255,255,.08); pointer-events: none;
+  }
+  .hp-prod-chip {
+    width: 30px; height: 20px;
+    background: linear-gradient(135deg, #f5c800, #d97706);
+    border-radius: 4px; margin-bottom: 20px;
+  }
+  .hp-prod-lbl {
+    font-size: 9.5px; font-weight: 700;
+    color: rgba(255,255,255,.5);
+    text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 4px;
+  }
+  .hp-prod-amt {
+    font-size: clamp(20px, 5.5vw, 26px);
+    font-weight: 900; color: #fff; letter-spacing: -1px;
+    margin-bottom: 18px; transition: filter .2s;
+  }
+  .hp-prod-amt.masked { filter: blur(7px); user-select: none; }
+  .hp-prod-footer { display: flex; align-items: center; justify-content: space-between; }
+  .hp-prod-codigo { font-size: 9.5px; color: rgba(255,255,255,.65); font-family: monospace; letter-spacing: .8px; }
+  .hp-prod-tipo   { font-size: 8px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
+  .hp-prod-tipo.ahorro  { color: #93c5fd; }
+  .hp-prod-tipo.credito { color: #c4b5fd; }
+  .hp-prod-estado {
+    font-size: 8px; font-weight: 800;
+    padding: 2px 7px; border-radius: 8px;
+    text-transform: uppercase; letter-spacing: .5px;
+  }
+  .hp-prod-estado.mora   { background: rgba(239,68,68,.3); color: #fca5a5; }
+  .hp-prod-estado.normal { background: rgba(34,197,94,.25); color: #86efac; }
+
+  /* ════════════════════════════════
+     CUERPO BLANCO
+  ════════════════════════════════ */
+  .hp-body {
+    background: #f0f3f8;
+    padding: 24px 18px 56px;
+  }
+
+  /* ── Acciones rápidas ── */
+  .hp-acciones {
+    display: grid; grid-template-columns: repeat(4,1fr);
+    gap: 10px; margin-bottom: 28px;
+  }
+  .hp-acc-btn {
+    background: #fff; border: 1px solid #e8edf6;
+    border-radius: 18px; padding: 18px 8px 15px;
+    cursor: pointer; font-family: inherit;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 8px;
+    transition: transform .18s, box-shadow .18s;
+    box-shadow: 0 1px 6px rgba(0,0,0,.05);
+  }
+  .hp-acc-btn:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,.1); }
+  .hp-acc-ico {
+    width: 50px; height: 50px; border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; transition: transform .18s;
+  }
+  .hp-acc-btn:hover .hp-acc-ico { transform: scale(1.1); }
+  .hp-acc-lbl { font-size: 11px; font-weight: 700; color: #374151; text-align: center; line-height: 1.3; }
+
+  /* ── Section header ── */
+  .hp-sec-hd {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .hp-sec-title { font-size: 16px; font-weight: 800; color: #0c1e3e; display: flex; align-items: center; gap: 7px; }
+  .hp-sec-link {
+    font-size: 12px; font-weight: 700; color: #d97706;
+    background: none; border: none; cursor: pointer;
+    font-family: inherit; transition: color .15s;
+  }
+  .hp-sec-link:hover { color: #b45309; }
+
+  /* ── Movimientos ── */
+  .hp-mov-card {
+    background: #fff; border-radius: 16px;
+    overflow: hidden; margin-bottom: 20px;
+    box-shadow: 0 1px 8px rgba(0,0,0,.06);
+    border: 1px solid #edf0f8;
+  }
+  .hp-mov-row {
+    display: flex; align-items: center;
+    padding: 16px 16px; gap: 13px;
+    cursor: pointer; border-bottom: 1px solid #f4f6fb;
+    transition: background .15s;
+  }
+  .hp-mov-row:last-child { border-bottom: none; }
+  .hp-mov-row:hover { background: #f8faff; }
+  .hp-mov-ico { width: 46px; height: 46px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+  .hp-mov-info { flex: 1; min-width: 0; }
+  .hp-mov-desc { font-size: 13.5px; font-weight: 700; color: #0c1e3e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; }
+  .hp-mov-date { font-size: 11.5px; color: #9ca3af; }
+  .hp-mov-amt  { font-size: 15px; font-weight: 800; flex-shrink: 0; transition: filter .2s; }
+  .hp-mov-amt.masked { filter: blur(5px); user-select: none; }
+
+  /* ── Bottom sheet modal ── */
+  .hp-sheet-bg {
+    position: fixed; inset: 0; z-index: 700;
+    background: rgba(6,17,43,.6);
+    backdrop-filter: blur(4px);
+    display: flex; align-items: flex-end;
+    animation: hp-fi .2s ease;
+  }
+  @keyframes hp-fi { from { opacity:0; } to { opacity:1; } }
+  .hp-sheet {
+    background: #fff; border-radius: 24px 24px 0 0;
+    width: 100%; max-width: 520px; margin: 0 auto;
+    padding: 0 0 36px; max-height: 90vh; overflow-y: auto;
+    animation: hp-su .3s cubic-bezier(.22,1,.36,1);
+  }
+  @keyframes hp-su { from { transform:translateY(100%); } to { transform:translateY(0); } }
+  .hp-sheet-handle { width: 40px; height: 4px; background: #e5e7eb; border-radius: 2px; margin: 12px auto 0; }
+  .hp-sheet-hd { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px 12px; border-bottom: 1px solid #f0f2f8; }
+  .hp-sheet-title { font-size: 15px; font-weight: 800; color: #0c1e3e; }
+  .hp-sheet-close { background: #f4f6fb; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 15px; color: #6b7280; }
+  .hp-sheet-close:hover { background: #e5e7eb; }
+  .hp-sheet-body { padding: 16px 18px; }
+
+  /* Detalle movimiento */
+  .hp-det-ico  { width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 8px; }
+  .hp-det-amt  { font-size: 30px; font-weight: 900; text-align: center; margin-bottom: 3px; }
+  .hp-det-desc { font-size: 13px; color: #6b7280; text-align: center; margin-bottom: 18px; }
+  .hp-det-row  { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f4f6fb; font-size: 13px; }
+  .hp-det-row:last-child { border-bottom: none; }
+  .hp-det-lbl  { color: #9ca3af; font-weight: 500; }
+  .hp-det-val  { font-weight: 700; color: #0c1e3e; text-align: right; max-width: 60%; }
+
+  /* Transferencia */
+  .hp-tf-field { margin-bottom: 13px; }
+  .hp-tf-lbl   { display: block; font-size: 10.5px; font-weight: 700; color: #374151; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .4px; }
+  .hp-tf-input { width: 100%; padding: 11px 13px; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 14px; font-family: inherit; background: #fafbfc; color: #0c1e3e; outline: none; transition: border-color .2s, box-shadow .2s; }
+  .hp-tf-input:focus { border-color: #f5c800; box-shadow: 0 0 0 3px rgba(245,200,0,.18); }
+  .hp-tf-btn   { width: 100%; background: linear-gradient(135deg, #071428, #1a3e8a); color: #fff; font-size: 14px; font-weight: 800; padding: 13px; border-radius: 10px; border: none; cursor: pointer; font-family: inherit; transition: transform .15s, box-shadow .15s; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 6px; }
+  .hp-tf-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(7,20,42,.35); }
+  .hp-tf-btn:disabled { opacity: .5; cursor: not-allowed; }
+  .hp-tf-ok  { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; border-radius: 10px; padding: 11px 13px; font-size: 13px; font-weight: 600; margin-bottom: 12px; }
+  .hp-tf-err { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; border-radius: 10px; padding: 11px 13px; font-size: 13px; font-weight: 600; margin-bottom: 12px; }
+  .hp-orig-selector { display: flex; gap: 8px; flex-wrap: wrap; }
+  .hp-orig-opt { flex: 1; min-width: 110px; border: 2px solid #e5e7eb; border-radius: 10px; padding: 9px 11px; cursor: pointer; background: #fafbfc; font-family: inherit; text-align: left; transition: border-color .15s, background .15s; }
+  .hp-orig-opt.sel { border-color: #1a3e8a; background: #eef4ff; }
+  .hp-orig-opt-cod   { font-size: 11px; font-weight: 700; color: #0c1e3e; font-family: monospace; }
+  .hp-orig-opt-saldo { font-size: 10px; color: #6b7280; margin-top: 1px; }
+
+  /* Estados */
+  .hp-empty  { text-align: center; padding: 24px 16px; color: #9ca3af; font-size: 13px; }
+  .hp-loader { text-align: center; padding: 18px; color: #9ca3af; font-size: 13px; }
+
+  /* ── Animación LED tarjetas ahorro ── */
+  /* Brillo LED — overlay con opacity sobre fondo fijo */
+  @keyframes hp-glow-pulse {
+    0%   { opacity: 0; }
+    50%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  .hp-card-led {
+    background: linear-gradient(135deg, #0d1f4a, #1044a8) !important;
+    position: relative;
+  }
+  .hp-card-led::after {
+    content: '';
+    position: absolute; inset: 0;
+    border-radius: 20px;
+    background: linear-gradient(135deg, rgba(96,165,250,0) 0%, rgba(147,197,253,.55) 50%, rgba(224,242,254,.7) 100%);
+    opacity: 0;
+    animation: hp-glow-pulse 5s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  .hp-card-led-credito {
+    background: linear-gradient(135deg, #1e0938, #4c1d95) !important;
+    position: relative;
+  }
+  .hp-card-led-credito::after {
+    content: '';
+    position: absolute; inset: 0;
+    border-radius: 20px;
+    background: linear-gradient(135deg, rgba(139,92,246,0) 0%, rgba(167,139,250,.55) 50%, rgba(237,233,254,.65) 100%);
+    opacity: 0;
+    animation: hp-glow-pulse 5s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  /* Desktop */
+  @media (min-width: 640px) {
+    .hp { margin: -36px -32px -72px; }
+    .hp-hero { padding: 32px 32px 36px; }
+    .hp-greeting-name { font-size: 26px; }
+    .hp-body { padding: 24px 32px 56px; }
+    .hp-prod-card { min-width: 220px; }
+    .hp-sheet-bg { align-items: center; }
+    .hp-sheet    { border-radius: 20px; }
+  }
+`
 
 export default function HomePage() {
   const { user } = useAuth()
-  const navigate = useNavigate()
+  const navigate  = useNavigate()
+
   const [cuentas,  setCuentas]  = useState(null)
   const [creditos, setCreditos] = useState(null)
+  const [movs,     setMovs]     = useState({})
+  const [loadingM, setLoadingM] = useState({})
   const [err,      setErr]      = useState(null)
-  const [hidden,   setHidden]   = useState(false) // 👁 ocultar saldos
+  const [hidden,   setHidden]   = useState(true)
+  const [modal,    setModal]    = useState(null)
+
+  // Transferencia
+  const [tfOrigen,  setTfOrigen]  = useState('')
+  const [tfDestino, setTfDestino] = useState('')
+  const [tfMonto,   setTfMonto]   = useState('')
+  const [tfDesc,    setTfDesc]    = useState('')
+  const [tfLoading, setTfLoading] = useState(false)
+  const [tfMsg,     setTfMsg]     = useState(null)
+
+  const first     = user?.nombre?.split(',')[1]?.trim().split(' ')[0] || 'Cliente'
+  const showAmt   = (v) => hidden ? '••••••' : fmt(v)
 
   useEffect(() => {
-    let active = true
+    let a = true
     Promise.all([api.getCuentasAhorro(), api.getCuentasCredito()])
-      .then(([c, cr]) => { if (active) { setCuentas(c); setCreditos(cr) } })
-      .catch((e) => active && setErr(e.message))
-    return () => { active = false }
+      .then(([c, cr]) => { if (a) { setCuentas(c); setCreditos(cr) } })
+      .catch(e => a && setErr(e.message))
+    return () => { a = false }
   }, [])
 
-  const first       = user?.nombre?.split(',')[1]?.trim().split(' ')[0] || 'Cliente'
-  const totalAhorro = (cuentas  || []).reduce((s, c) => s + Number(c.saldo),           0)
-  const totalDeuda  = (creditos || []).reduce((s, c) => s + Number(c.saldo_pendiente), 0)
+  const loadMovs = useCallback(async (codigo) => {
+    if (movs[codigo] !== undefined || loadingM[codigo]) return
+    setLoadingM(p => ({ ...p, [codigo]: true }))
+    try   { const d = await api.getMovimientos(codigo); setMovs(p => ({ ...p, [codigo]: d })) }
+    catch { setMovs(p => ({ ...p, [codigo]: [] })) }
+    finally { setLoadingM(p => ({ ...p, [codigo]: false })) }
+  }, [movs, loadingM])
 
-  // Valor mostrado según estado de oculto
-  const mask = '••••••'
-  const show = (val) => hidden ? mask : (val === null ? '···' : fmt(val))
+  // Auto-carga movimientos de la primera cuenta
+  useEffect(() => { if (cuentas?.length) loadMovs(cuentas[0].codigo) }, [cuentas])
 
-  const acciones = [
-    { icon: 'send',    label: 'Transferencia entre cuentas', to: '/banca/operaciones', color: '#f5c800' },
-    { icon: 'receipt', label: 'Pago de cuota de crédito',    to: '/banca/operaciones', color: '#22c55e' },
-    { icon: 'file',    label: 'Solicitar préstamo nuevo',    to: '/banca/solicitar',   color: '#3b82f6' },
-    { icon: 'credit',  label: 'Ver mis créditos',            to: '/banca/creditos',    color: '#a855f7' },
-  ]
+  const openMovs   = (cuenta) => { loadMovs(cuenta.codigo); setModal({ type:'movs', cuenta }) }
+  const openDetalle = (mov, cuenta) => setModal({ type:'det', mov, cuenta })
+  const openTf     = () => {
+    setTfOrigen(cuentas?.[0]?.codigo || '')
+    setTfDestino(''); setTfMonto(''); setTfDesc(''); setTfMsg(null)
+    setModal({ type:'tf' })
+  }
+  const closeModal = () => setModal(null)
+
+  const hacerTf = async () => {
+    if (!tfOrigen || !tfDestino || !tfMonto) return
+    setTfLoading(true); setTfMsg(null)
+    try {
+      await api.transferir({ cuenta_origen: tfOrigen, cuenta_destino: tfDestino, monto: Number(tfMonto), descripcion: tfDesc || 'Transferencia' })
+      setTfMsg({ ok: true, text: '✅ Transferencia realizada con éxito.' })
+      const c = await api.getCuentasAhorro(); setCuentas(c); setMovs({})
+    } catch (e) { setTfMsg({ ok: false, text: '⚠️ ' + e.message }) }
+    finally { setTfLoading(false) }
+  }
+
+  const primeraCuenta = cuentas?.[0]
+  const movsPreview   = primeraCuenta ? (movs[primeraCuenta.codigo] || []).slice(0, 5) : []
 
   return (
-    <div className="fade-in">
-      <style>{`
-        /* ── HERO ── */
-        .hero-banner {
-          background: linear-gradient(135deg, #07142a 0%, #0f2347 35%, #163d82 65%, #1a52b0 100%);
-          border-radius: 20px;
-          padding: 26px 20px 28px;
-          margin-bottom: 20px;
-          position: relative;
-          overflow: hidden;
-          box-shadow: 0 16px 48px rgba(7,20,42,.4);
-        }
-        .hero-banner::before {
-          content: '';
-          position: absolute; top: -80px; right: -80px;
-          width: 300px; height: 300px; border-radius: 50%;
-          background: radial-gradient(circle, rgba(245,200,0,.15) 0%, transparent 70%);
-          pointer-events: none;
-        }
+    <div className="hp fade-in">
+      <style>{CSS}</style>
 
-        /* Greeting */
-        .hero-greeting {
-          font-size: 11px; font-weight: 600;
-          color: rgba(255,255,255,.55);
-          text-transform: uppercase; letter-spacing: 2px;
-          margin-bottom: 4px;
-        }
-        .hero-name {
-          font-size: clamp(22px, 5vw, 34px);
-          font-weight: 900; color: #fff; letter-spacing: -1px;
-          margin-bottom: 2px;
-        }
-        .hero-sub {
-          font-size: 12px; color: rgba(255,255,255,.45);
-          margin-bottom: 20px;
-        }
+      {/* ════════ HERO ════════ */}
+      <div className="hp-hero">
+        <div className="hp-hero-glow1" />
+        <div className="hp-hero-glow2" />
 
-        /* Botón ocultar saldos */
-        .hero-eye-btn {
-          display: inline-flex; align-items: center; gap: 6px;
-          background: rgba(255,255,255,.1);
-          border: 1px solid rgba(255,255,255,.18);
-          color: rgba(255,255,255,.8);
-          font-size: 11px; font-weight: 700;
-          padding: 6px 14px; border-radius: 20px;
-          cursor: pointer; font-family: inherit;
-          transition: background .15s;
-          margin-bottom: 18px;
-          letter-spacing: .3px;
-        }
-        .hero-eye-btn:hover { background: rgba(255,255,255,.18); }
-
-        /* KPI cards */
-        .hero-kpis {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 12px;
-          position: relative; z-index: 1;
-        }
-        .hero-kpi {
-          background: rgba(255,255,255,.07);
-          border: 1px solid rgba(255,255,255,.12);
-          border-radius: 14px;
-          padding: 16px 16px;
-          backdrop-filter: blur(10px);
-          transition: background .2s, transform .2s;
-          position: relative; overflow: hidden;
-        }
-        .hero-kpi::before {
-          content: '';
-          position: absolute; top: 0; left: 0;
-          width: 100%; height: 2.5px; border-radius: 2px 2px 0 0;
-        }
-        .hero-kpi.ahorro::before { background: linear-gradient(90deg, #22c55e, #16a34a); }
-        .hero-kpi.deuda::before  { background: linear-gradient(90deg, #ef4444, #dc2626); }
-        .hero-kpi:hover { background: rgba(255,255,255,.11); transform: translateY(-2px); }
-
-        .hero-kpi-icon {
-          width: 36px; height: 36px; border-radius: 10px;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 16px; margin-bottom: 10px;
-        }
-        .hero-kpi-label {
-          font-size: 9.5px; font-weight: 700;
-          color: rgba(255,255,255,.45);
-          text-transform: uppercase; letter-spacing: 1px;
-          margin-bottom: 5px;
-        }
-        .hero-kpi-val {
-          font-size: clamp(17px, 4vw, 26px);
-          font-weight: 900; color: #fff; letter-spacing: -1px;
-          min-height: 32px;
-          display: flex; align-items: center;
-          transition: filter .2s;
-        }
-        .hero-kpi-val.blurred { filter: blur(6px); user-select: none; }
-        .hero-kpi-sub { font-size: 10px; color: rgba(255,255,255,.35); margin-top: 3px; }
-
-        /* Tarjeta virtual — solo desktop */
-        .virtual-card {
-          display: none;
-        }
-
-        /* ── SECTION CARDS ── */
-        .section-card {
-          background: #fff;
-          border-radius: 16px;
-          overflow: hidden;
-          box-shadow: 0 2px 12px rgba(7,20,42,.07);
-          margin-bottom: 16px;
-          border: 1px solid rgba(0,0,0,.05);
-          transition: box-shadow .2s;
-        }
-        .section-card:hover { box-shadow: 0 6px 28px rgba(7,20,42,.11); }
-        .section-card-hd {
-          padding: 15px 18px;
-          display: flex; align-items: center; justify-content: space-between;
-          border-bottom: 1px solid #f0f2f8;
-        }
-        .section-card-title {
-          font-size: 14px; font-weight: 800; color: #07142a;
-          display: flex; align-items: center; gap: 7px;
-        }
-        .section-card-body { padding: 0 6px 6px; }
-
-        /* Product rows */
-        .prod-row {
-          display: flex; align-items: center;
-          justify-content: space-between;
-          padding: 14px 12px;
-          border-radius: 10px;
-          cursor: pointer;
-          transition: background .15s, transform .15s;
-          margin: 3px 0;
-        }
-        .prod-row:hover { background: #f0f6ff; transform: translateX(3px); }
-        .prod-row-left { display: flex; align-items: center; gap: 12px; }
-        .prod-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-        .prod-info strong { display: block; font-size: 13px; font-weight: 700; color: #07142a; }
-        .prod-info small  { font-size: 11px; color: #6b7280; }
-        .prod-amount {
-          font-size: 14px; font-weight: 800; color: #07142a;
-          display: flex; align-items: center; gap: 5px;
-          transition: filter .2s;
-        }
-        .prod-amount.blurred { filter: blur(5px); user-select: none; }
-        .prod-divider { height: 1px; background: #f0f2f8; margin: 0 12px; }
-
-        /* Aside */
-        .aside-header {
-          font-size: 11px; font-weight: 800; color: #07142a;
-          text-transform: uppercase; letter-spacing: 1.2px;
-          display: flex; align-items: center; gap: 6px;
-          margin-bottom: 12px; padding-left: 2px;
-        }
-        .action-card {
-          background: #fff;
-          border: 1px solid #edf0f8;
-          border-radius: 12px;
-          padding: 13px 14px;
-          cursor: pointer;
-          display: flex; align-items: center; gap: 12px;
-          transition: transform .18s, box-shadow .18s, background .18s;
-          margin-bottom: 9px;
-          position: relative; overflow: hidden;
-        }
-        .action-card::before {
-          content: '';
-          position: absolute; left: 0; top: 0;
-          width: 3px; height: 100%;
-          border-radius: 3px 0 0 3px;
-          transition: width .2s;
-        }
-        .action-card:hover { transform: translateX(4px); box-shadow: 0 4px 18px rgba(0,0,0,.08); }
-        .action-card:hover::before { width: 4px; }
-        .action-ico {
-          width: 38px; height: 38px; border-radius: 10px;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 16px; flex-shrink: 0;
-          transition: transform .2s;
-        }
-        .action-card:hover .action-ico { transform: scale(1.1) rotate(-5deg); }
-        .action-label { font-size: 12.5px; font-weight: 600; color: #07142a; }
-
-        /* ══════════════════════
-           DESKTOP ≥ 640px
-        ══════════════════════ */
-        @media (min-width: 640px) {
-          .hero-banner { padding: 36px 40px; border-radius: 24px; margin-bottom: 28px; }
-          .hero-name   { font-size: 34px; }
-          .hero-sub    { font-size: 13px; }
-          .hero-kpis   { gap: 16px; }
-          .hero-kpi    { padding: 20px 22px; }
-          .hero-kpi-icon { width: 40px; height: 40px; font-size: 18px; margin-bottom: 12px; }
-          .hero-kpi-label { font-size: 10.5px; }
-          .hero-kpi-val   { font-size: 26px; }
-
-          /* Tarjeta virtual visible en desktop */
-          .virtual-card {
-            display: flex;
-            position: absolute;
-            right: 40px; top: 50%;
-            transform: translateY(-50%);
-            width: 220px; height: 138px;
-            border-radius: 16px;
-            background: linear-gradient(135deg, rgba(255,255,255,.15), rgba(255,255,255,.05));
-            border: 1px solid rgba(255,255,255,.18);
-            backdrop-filter: blur(12px);
-            padding: 18px 20px;
-            flex-direction: column;
-            justify-content: space-between;
-            box-shadow: 0 8px 32px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.2);
-            animation: cardFloat 4s ease-in-out infinite;
-          }
-          @keyframes cardFloat {
-            0%,100% { transform: translateY(-50%) translateY(0); }
-            50%      { transform: translateY(-50%) translateY(-6px); }
-          }
-        }
-      `}</style>
-
-      {/* ── HERO ── */}
-      <div className="hero-banner">
-        <div style={{ position:'relative', zIndex:1 }}>
-          <div className="hero-greeting">Bienvenido de vuelta</div>
-          <div className="hero-name">{first} 👋</div>
-          <div className="hero-sub">Posición global de tus productos en Financiera Qapaq</div>
-
-          {/* 👁 Botón ocultar/mostrar */}
-          <button className="hero-eye-btn" onClick={() => setHidden(v => !v)}>
-            {hidden ? '👁 Mostrar saldos' : '🙈 Ocultar saldos'}
-          </button>
-
-          <div className="hero-kpis">
-            <div className="hero-kpi ahorro">
-              <div className="hero-kpi-icon" style={{ background:'rgba(34,197,94,.15)' }}>
-                <Icon name="piggy" size={18} />
-              </div>
-              <div className="hero-kpi-label">Total en ahorros</div>
-              <div className={`hero-kpi-val${hidden ? ' blurred' : ''}`}>
-                {show(cuentas ? totalAhorro : null)}
-              </div>
-              <div className="hero-kpi-sub">{cuentas?.length ?? 0} cuenta(s) activa(s)</div>
-            </div>
-            <div className="hero-kpi deuda">
-              <div className="hero-kpi-icon" style={{ background:'rgba(239,68,68,.15)' }}>
-                <Icon name="credit" size={18} />
-              </div>
-              <div className="hero-kpi-label">Deuda en créditos</div>
-              <div className={`hero-kpi-val${hidden ? ' blurred' : ''}`}>
-                {show(creditos ? totalDeuda : null)}
-              </div>
-              <div className="hero-kpi-sub">{creditos?.length ?? 0} crédito(s)</div>
-            </div>
+        {/* Saludo */}
+        <div className="hp-greeting-row">
+          <div>
+            <div className="hp-greeting-sub">¿Qué haremos hoy?</div>
+            <div className="hp-greeting-name">Hola, {first} 👋</div>
           </div>
+          <button className="hp-eye-btn" onClick={() => setHidden(v => !v)}>
+            {hidden ? '👁 Ver' : '🙈 Ocultar'}
+          </button>
         </div>
 
-        {/* Tarjeta virtual flotante — solo desktop */}
-        <div className="virtual-card">
-          <div style={{
-            position:'absolute', inset:0,
-            background:'linear-gradient(105deg, rgba(255,255,255,0) 40%, rgba(255,255,255,.08) 50%, rgba(255,255,255,0) 60%)',
-            borderRadius:16, animation:'vcShine 3s ease-in-out infinite',
-          }} />
-          <style>{`@keyframes vcShine{0%,100%{opacity:0}50%{opacity:1}}`}</style>
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
-            <div style={{ width:32, height:24, background:'linear-gradient(135deg,#f5c800,#d97706)', borderRadius:5 }} />
-            <div style={{ fontSize:9, color:'rgba(255,255,255,.4)', fontWeight:700, letterSpacing:1 }}>BANCA DIGITAL</div>
-          </div>
-          <div style={{ fontSize:13, fontWeight:700, color:'rgba(255,255,255,.8)', letterSpacing:2, fontFamily:'monospace' }}>
-            •••• •••• 0001
-          </div>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-            <div style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,.7)', textTransform:'uppercase' }}>{first}</div>
-            <div style={{ fontSize:11, fontWeight:900, color:'#f5c800', letterSpacing:.5 }}>QAPAQ</div>
-          </div>
+        {/* Label */}
+        <div className="hp-productos-label">Mis productos</div>
+
+        {/* Tarjetas dentro del hero */}
+        <div className="hp-products-scroll">
+          {/* Cuentas de ahorro */}
+          {cuentas === null && (
+            <div style={{ color:'rgba(255,255,255,.5)', fontSize:13, padding:'8px 0' }}>Cargando…</div>
+          )}
+          {(cuentas || []).map((c, i) => (
+            <TarjetaAhorro key={c.codigo} cuenta={c} delay={i * 1.2} onOpen={() => openMovs(c)} />
+          ))}
+          {/* Créditos */}
+          {(creditos || []).map((c, i) => (
+            <TarjetaCredito key={c.codigo} credito={c} delay={i * 1.5} onOpen={() => navigate('/banca/creditos')} />
+          ))}
         </div>
       </div>
 
-      {err && <div className="hb-alert-err">{err}</div>}
+      {/* ════════ CUERPO BLANCO ════════ */}
+      <div className="hp-body">
+        {err && <div className="hb-alert-err" style={{ marginBottom:16 }}>{err}</div>}
 
-      {/* ── LAYOUT 2 COLS ── */}
-      <div className="hb-layout-2">
-        <div>
-          {/* Cuentas de Ahorro */}
-          <div className="section-card">
-            <div className="section-card-hd">
-              <span className="section-card-title">
-                <span style={{ fontSize:17 }}>🐷</span> Cuentas de Ahorro
-              </span>
-              <button className="hb-link" onClick={() => navigate('/banca/ahorros')}>Ver todas →</button>
-            </div>
-            <div className="section-card-body">
-              {!cuentas
-                ? <div className="hb-loader">Cargando…</div>
-                : cuentas.length === 0
-                  ? <div className="hb-empty">No tienes cuentas registradas.</div>
-                  : cuentas.map((c, i) => (
-                    <div key={c.codigo}>
-                      <div className="prod-row" onClick={() => navigate('/banca/ahorros')}>
-                        <div className="prod-row-left">
-                          <div className="prod-dot" style={{ background:'#22c55e' }} />
-                          <div className="prod-info">
-                            <strong>{c.codigo}</strong>
-                            <small>{c.tipo} · <Badge estado={c.estado} /></small>
-                          </div>
-                        </div>
-                        <div className={`prod-amount${hidden ? ' blurred' : ''}`}>
-                          <span style={{ color:'#15803d' }}>
-                            {hidden ? mask : fmt(c.saldo)}
-                          </span>
-                          <Icon name="arrow" size={13} />
-                        </div>
-                      </div>
-                      {i < cuentas.length - 1 && <div className="prod-divider" />}
-                    </div>
-                  ))
-              }
-            </div>
-          </div>
-
-          {/* Préstamos */}
-          <div className="section-card">
-            <div className="section-card-hd">
-              <span className="section-card-title">
-                <span style={{ fontSize:17 }}>💳</span> Préstamos
-              </span>
-              <button className="hb-link" onClick={() => navigate('/banca/creditos')}>Ver todos →</button>
-            </div>
-            <div className="section-card-body">
-              {!creditos
-                ? <div className="hb-loader">Cargando…</div>
-                : creditos.length === 0
-                  ? <div className="hb-empty">Aún no tienes créditos activos.</div>
-                  : creditos.map((c, i) => (
-                    <div key={c.codigo}>
-                      <div className="prod-row" onClick={() => navigate('/banca/creditos')}>
-                        <div className="prod-row-left">
-                          <div className="prod-dot" style={{ background: c.estado === 'Mora' ? '#ef4444' : '#3b82f6' }} />
-                          <div className="prod-info">
-                            <strong>{c.codigo}</strong>
-                            <small>{c.tipo_credito} · <Badge estado={c.estado} /></small>
-                          </div>
-                        </div>
-                        <div className={`prod-amount${hidden ? ' blurred' : ''}`}>
-                          <span style={{ color: c.estado === 'Mora' ? '#dc2626' : '#07142a' }}>
-                            {hidden ? mask : fmt(c.saldo_pendiente)}
-                          </span>
-                          <Icon name="arrow" size={13} />
-                        </div>
-                      </div>
-                      {i < creditos.length - 1 && <div className="prod-divider" />}
-                    </div>
-                  ))
-              }
-            </div>
-          </div>
-        </div>
-
-        {/* Sidebar — acciones rápidas */}
-        <div>
-          <div className="aside-header">
-            <span style={{ color:'#f5c800', fontSize:15 }}>⚡</span> Operaciones rápidas
-          </div>
-          {acciones.map((a) => (
-            <div
-              key={a.label}
-              className="action-card"
-              onClick={() => navigate(a.to)}
-              style={{ '--ac': a.color }}
-            >
-              <style>{`
-                .action-card:hover { background: ${a.color}08 !important; }
-                .action-card::before { background: ${a.color}; }
-              `}</style>
-              <div className="action-ico" style={{ background:`${a.color}18`, color: a.color }}>
-                <Icon name={a.icon} size={16} />
-              </div>
-              <span className="action-label">{a.label}</span>
-            </div>
+        {/* Acciones rápidas */}
+        <div className="hp-acciones">
+          {[
+            { ico:'💸', lbl:'Transferir',   bg:'#dbeafe', fg:'#1d4ed8', fn: openTf },
+            { ico:'💰', lbl:'Mis ahorros',  bg:'#dcfce7', fg:'#15803d', fn: () => navigate('/banca/ahorros') },
+            { ico:'💳', lbl:'Mis créditos', bg:'#ede9fe', fg:'#7c3aed', fn: () => navigate('/banca/creditos') },
+            { ico:'📊', lbl:'Simulador',    bg:'#fef3c7', fg:'#d97706', fn: () => navigate('/banca/simulador') },
+          ].map(a => (
+            <button key={a.lbl} className="hp-acc-btn" onClick={a.fn}>
+              <div className="hp-acc-ico" style={{ background:a.bg, color:a.fg }}>{a.ico}</div>
+              <span className="hp-acc-lbl">{a.lbl}</span>
+            </button>
           ))}
         </div>
+
+        {/* Últimos movimientos */}
+        <div className="hp-sec-hd">
+          <span className="hp-sec-title">📋 Últimos movimientos</span>
+          {primeraCuenta && (
+            <button className="hp-sec-link" onClick={() => openMovs(primeraCuenta)}>Ver más →</button>
+          )}
+        </div>
+
+        {!primeraCuenta || loadingM[primeraCuenta?.codigo] ? (
+          <div className="hp-loader">Cargando movimientos…</div>
+        ) : movsPreview.length === 0 ? (
+          <div className="hp-empty">Sin movimientos recientes.</div>
+        ) : (
+          <div className="hp-mov-card">
+            {movsPreview.map((m, i) => (
+              <MovFila key={m.id || i} mov={m} hidden={hidden} showAmt={showAmt}
+                onClick={() => openDetalle(m, primeraCuenta)} />
+            ))}
+          </div>
+        )}
+
+        {/* Solicitar crédito — si no tiene */}
+        {creditos && creditos.length === 0 && (
+          <div style={{ background:'linear-gradient(135deg,#1a3e8a,#2563eb)', borderRadius:16, padding:'18px 20px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, boxShadow:'0 4px 20px rgba(26,62,138,.3)' }}>
+            <div>
+              <div style={{ fontSize:12, color:'rgba(255,255,255,.6)', marginBottom:3 }}>¿Necesitas financiamiento?</div>
+              <div style={{ fontSize:14, fontWeight:800, color:'#fff' }}>Solicita tu préstamo</div>
+            </div>
+            <button onClick={() => navigate('/banca/solicitar')} style={{ background:'#f5c800', color:'#0c1e3e', fontWeight:800, fontSize:12, padding:'9px 16px', borderRadius:8, border:'none', cursor:'pointer', whiteSpace:'nowrap', fontFamily:'inherit' }}>
+              Solicitar →
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* ════════ MODALES ════════ */}
+      {modal && (
+        <div className="hp-sheet-bg" onClick={e => e.target === e.currentTarget && closeModal()}>
+          <div className="hp-sheet">
+            <div className="hp-sheet-handle" />
+
+            {/* Movimientos de cuenta */}
+            {modal.type === 'movs' && (
+              <ModalMovimientos
+                cuenta={modal.cuenta}
+                movs={movs} loading={loadingM}
+                onDetalle={m => openDetalle(m, modal.cuenta)}
+                loadMovs={loadMovs}
+                onClose={closeModal}
+              />
+            )}
+
+            {/* Detalle movimiento */}
+            {modal.type === 'det' && (() => {
+              const { bg, color, sign } = tipoColor(modal.mov.descripcion || modal.mov.tipo || '')
+              const monto = modal.mov.monto || modal.mov.importe || 0
+              return (
+                <>
+                  <div className="hp-sheet-hd">
+                    <span className="hp-sheet-title">Detalle</span>
+                    <button className="hp-sheet-close" onClick={closeModal}>✕</button>
+                  </div>
+                  <div className="hp-sheet-body">
+                    <div className="hp-det-ico" style={{ background:bg, color }}>{sign==='+' ? '⬆️' : sign==='-' ? '⬇️' : '↔️'}</div>
+                    <div className="hp-det-amt" style={{ color }}>{sign}{showAmt(monto)}</div>
+                    <div className="hp-det-desc">{modal.mov.descripcion || modal.mov.tipo}</div>
+                    {[
+                      ['Fecha',        fmtDateTime(modal.mov.fecha || modal.mov.created_at)],
+                      ['Tipo',         modal.mov.tipo || '—'],
+                      ['Cuenta',       modal.cuenta?.codigo || '—'],
+                      ['N° operación', modal.mov.id ? `#${modal.mov.id}` : '—'],
+                      ['Saldo tras op.', modal.mov.saldo_despues != null ? fmt(modal.mov.saldo_despues) : '—'],
+                    ].map(([l,v]) => (
+                      <div key={l} className="hp-det-row">
+                        <span className="hp-det-lbl">{l}</span>
+                        <span className="hp-det-val">{v}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )
+            })()}
+
+            {/* Transferencia */}
+            {modal.type === 'tf' && (
+              <>
+                <div className="hp-sheet-hd">
+                  <span className="hp-sheet-title">💸 Transferir</span>
+                  <button className="hp-sheet-close" onClick={closeModal}>✕</button>
+                </div>
+                <div className="hp-sheet-body">
+                  {tfMsg && <div className={tfMsg.ok ? 'hp-tf-ok' : 'hp-tf-err'}>{tfMsg.text}</div>}
+
+                  <div className="hp-tf-field">
+                    <label className="hp-tf-lbl">Cuenta origen</label>
+                    <div className="hp-orig-selector">
+                      {(cuentas || []).map(c => (
+                        <button key={c.codigo} className={`hp-orig-opt${tfOrigen===c.codigo?' sel':''}`} onClick={() => setTfOrigen(c.codigo)}>
+                          <div className="hp-orig-opt-cod">{c.codigo}</div>
+                          <div className="hp-orig-opt-saldo">{showAmt(c.saldo)}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="hp-tf-field">
+                    <label className="hp-tf-lbl">Cuenta destino</label>
+                    <input className="hp-tf-input" placeholder="Ej. AH-00002" value={tfDestino} onChange={e => setTfDestino(e.target.value.toUpperCase())} />
+                    <div style={{ fontSize:10, color:'#9ca3af', marginTop:4 }}>Código de cuenta QAPAQ del destinatario</div>
+                  </div>
+
+                  <div className="hp-tf-field">
+                    <label className="hp-tf-lbl">Monto (S/)</label>
+                    <input className="hp-tf-input" type="number" min="1" step="0.01" placeholder="0.00" value={tfMonto} onChange={e => setTfMonto(e.target.value)} />
+                  </div>
+
+                  <div className="hp-tf-field">
+                    <label className="hp-tf-lbl">Descripción (opcional)</label>
+                    <input className="hp-tf-input" placeholder="Ej. Pago entre amigos" value={tfDesc} onChange={e => setTfDesc(e.target.value)} />
+                  </div>
+
+                  <button className="hp-tf-btn" onClick={hacerTf} disabled={tfLoading || !tfOrigen || !tfDestino || !tfMonto}>
+                    {tfLoading ? '⏳ Procesando…' : '💸 Confirmar transferencia'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ── Modal movimientos con ojo propio ── */
+function ModalMovimientos({ cuenta, movs, loading, onDetalle, loadMovs, onClose }) {
+  const [vis, setVis] = useState(false)
+  const showAmt = (v) => vis ? fmt(v) : '••••••'
+  return (
+    <>
+      <div className="hp-sheet-hd">
+        <span className="hp-sheet-title">🐷 {cuenta.codigo}</span>
+        <button className="hp-sheet-close" onClick={onClose}>✕</button>
+      </div>
+      <div className="hp-sheet-body">
+        <div style={{ textAlign:'center', marginBottom:18, paddingBottom:16, borderBottom:'1px solid #f0f2f8' }}>
+          <div style={{ fontSize:10, color:'#9ca3af', marginBottom:3 }}>Saldo disponible</div>
+          <div style={{ fontSize:26, fontWeight:900, color:'#0c1e3e', filter: vis ? 'none' : 'blur(7px)', transition:'filter .3s' }}>
+            {vis ? fmt(cuenta.saldo) : '••••••'}
+          </div>
+          <div style={{ fontSize:10, color:'#9ca3af', marginTop:3 }}>{cuenta.tipo}</div>
+          <button
+            onClick={() => setVis(v => !v)}
+            style={{ marginTop:10, background:'#f4f6fb', border:'1px solid #e5e7eb', borderRadius:20, padding:'5px 14px', cursor:'pointer', fontSize:11, fontWeight:700, color:'#374151', fontFamily:'inherit', display:'inline-flex', alignItems:'center', gap:5 }}
+          >
+            {vis ? '🙈 Ocultar saldos' : '👁 Ver saldos'}
+          </button>
+        </div>
+        <MovLista
+          codigo={cuenta.codigo} movs={movs} loading={loading}
+          hidden={!vis} showAmt={showAmt}
+          onDetalle={onDetalle} loadMovs={loadMovs}
+        />
+      </div>
+    </>
+  )
+}
+
+/* ── Tarjeta Ahorro con ojo propio ── */
+function TarjetaAhorro({ cuenta, delay, onOpen }) {
+  const [vis, setVis] = useState(false)  // oculto por defecto
+  return (
+    <div className="hp-prod-card ahorro hp-card-led"
+      style={{ animationDelay: `${delay}s` }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+        <div className="hp-prod-chip" />
+        <button
+          onClick={e => { e.stopPropagation(); setVis(v => !v) }}
+          style={{ background:'rgba(255,255,255,.15)', border:'none', borderRadius:20, padding:'3px 10px', cursor:'pointer', fontSize:10, color:'#fff', fontWeight:700, fontFamily:'inherit', display:'flex', alignItems:'center', gap:4 }}
+        >
+          {vis ? '🙈' : '👁'} {vis ? 'Ocultar' : 'Ver'}
+        </button>
+      </div>
+      <div className="hp-prod-lbl" style={{ marginTop: 8 }}>Saldo disponible</div>
+      <div
+        className={`hp-prod-amt${!vis ? ' masked' : ''}`}
+        onClick={onOpen}
+        style={{ cursor:'pointer' }}
+      >
+        {vis ? fmt(cuenta.saldo) : '••••••'}
+      </div>
+      <div className="hp-prod-footer" onClick={onOpen} style={{ cursor:'pointer' }}>
+        <span className="hp-prod-codigo">{cuenta.codigo}</span>
+        <span className="hp-prod-tipo ahorro">{cuenta.tipo}</span>
+      </div>
+    </div>
+  )
+}
+
+/* ── Tarjeta Crédito con ojo propio ── */
+function TarjetaCredito({ credito, delay, onOpen }) {
+  const [vis, setVis] = useState(false)  // oculto por defecto
+  return (
+    <div className="hp-prod-card credito hp-card-led-credito"
+      style={{ animationDelay: `${delay}s` }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+        <div className={`hp-prod-estado${credito.estado === 'Mora' ? ' mora' : ' normal'}`}>{credito.estado}</div>
+        <button
+          onClick={e => { e.stopPropagation(); setVis(v => !v) }}
+          style={{ background:'rgba(255,255,255,.15)', border:'none', borderRadius:20, padding:'3px 10px', cursor:'pointer', fontSize:10, color:'#fff', fontWeight:700, fontFamily:'inherit', display:'flex', alignItems:'center', gap:4 }}
+        >
+          {vis ? '🙈' : '👁'} {vis ? 'Ocultar' : 'Ver'}
+        </button>
+      </div>
+      <div className="hp-prod-lbl" style={{ marginTop: 8 }}>Saldo pendiente</div>
+      <div
+        className={`hp-prod-amt${!vis ? ' masked' : ''}`}
+        onClick={onOpen}
+        style={{ cursor:'pointer' }}
+      >
+        {vis ? fmt(credito.saldo_pendiente) : '••••••'}
+      </div>
+      <div className="hp-prod-footer" onClick={onOpen} style={{ cursor:'pointer' }}>
+        <span className="hp-prod-codigo">{credito.codigo}</span>
+        <span className="hp-prod-tipo credito">{credito.tipo_credito}</span>
+      </div>
+    </div>
+  )
+}
+
+/* ── Lista completa de movimientos ── */
+function MovLista({ codigo, movs, loading, hidden, showAmt, onDetalle, loadMovs }) {
+  useEffect(() => { loadMovs(codigo) }, [codigo])
+  const lista = movs[codigo] || []
+  if (loading[codigo]) return <div className="hp-loader">Cargando…</div>
+  if (!lista.length)   return <div className="hp-empty">Sin movimientos registrados.</div>
+  return (
+    <div>
+      {lista.map((m, i) => (
+        <MovFila key={m.id || i} mov={m} hidden={hidden} showAmt={showAmt} onClick={() => onDetalle(m)} />
+      ))}
+    </div>
+  )
+}
+
+/* ── Fila de movimiento ── */
+function MovFila({ mov, hidden, showAmt, onClick }) {
+  const desc  = mov.descripcion || mov.tipo || 'Movimiento'
+  const monto = Math.abs(Number(mov.monto || mov.importe || 0))
+  const fechaRaw = mov.fecha || mov.created_at || ''
+  const fecha = (() => {
+    try {
+      const d = new Date(fechaRaw)
+      if (isNaN(d.getTime())) return fechaRaw
+      return d.toLocaleDateString('es-PE', { day:'2-digit', month:'short', year:'numeric' }) +
+             ' · ' + d.toLocaleTimeString('es-PE', { hour:'2-digit', minute:'2-digit' })
+    } catch { return fechaRaw }
+  })()
+  const { bg, color, sign } = tipoColor(desc)
+  return (
+    <div className="hp-mov-row" onClick={onClick}>
+      <div className="hp-mov-ico" style={{ background:bg, color }}>{sign==='+' ? '⬆️' : sign==='-' ? '⬇️' : '↔️'}</div>
+      <div className="hp-mov-info">
+        <div className="hp-mov-desc">{desc}</div>
+        <div className="hp-mov-date">{fecha}</div>
+      </div>
+      <div className={`hp-mov-amt${hidden ? ' masked' : ''}`} style={{ color }}>
+        {hidden ? '••••••' : `${sign}${fmt(monto)}`}
       </div>
     </div>
   )

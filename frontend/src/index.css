@@ -1438,4 +1438,12 @@ hr.sec-div{border:none;border-top:1px solid var(--q-border);margin:0}
   .hb-main { padding: 16px 12px 48px !important; }
   .hb-layout-2 { grid-template-columns: 1fr !important; }
   .hb-page-title { font-size: 20px !important; }
+}/* Login card — no ocupar todo el ancho en móvil */
+@media (max-width: 767px) {
+  .q-page { background: #f5c800 !important; }
+  .q-card {
+    width: calc(100% - 40px) !important;
+    max-width: 340px !important;
+    margin: 0 auto !important;
+  }
 }
