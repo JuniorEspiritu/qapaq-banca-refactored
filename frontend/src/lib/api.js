@@ -85,3 +85,4 @@ export const derivarJudicial = (creditoId, comentario) =>
   request(`/mora/judicial/${creditoId}`, { method: 'POST', body: { comentario } })
 export const castigarCredito = (creditoId, comentario) =>
   request(`/mora/castigo/${creditoId}`, { method: 'POST', body: { comentario } })
+export const getDashboardGerente = () => request('/gerente/dashboard')

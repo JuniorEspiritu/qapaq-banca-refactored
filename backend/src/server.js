@@ -9,6 +9,7 @@ import creditosRoutes from './routes/creditos.routes.js'
 import operacionesRoutes from './routes/operaciones.routes.js'
 import asesorRoutes from './routes/asesor.routes.js'
 import moraRoutes from './routes/mora.routes.js'
+import gerenteRoutes from './routes/gerente.routes.js'
 
 const app = express()
 
@@ -40,6 +41,7 @@ app.use('/creditos', creditosRoutes)
 app.use('/operaciones', operacionesRoutes)
 app.use('/asesor', asesorRoutes)
 app.use('/mora', moraRoutes)
+app.use('/gerente', gerenteRoutes)
 
 // 404
 app.use((_req, res) => res.status(404).json({ detail: 'Ruta no encontrada.' }))
