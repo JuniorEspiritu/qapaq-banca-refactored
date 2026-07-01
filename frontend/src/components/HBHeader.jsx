@@ -19,6 +19,10 @@ const MENU_ASESOR = [
   { to: '/asesor/mora',            icon: 'clock',     label: 'Recuperaciones' },
 ]
 
+const MENU_GERENTE = [
+  { to: '/gerente', icon: 'chart', label: 'Panel Gerencial' },
+]
+
 const ROL_LABEL = {
   cliente: 'Cliente',
   asesor:  'Asesor de Negocios',
@@ -37,7 +41,7 @@ export default function HBHeader() {
   }, [])
 
   const first = user?.nombre?.split(',')[1]?.trim().split(' ')[0] || user?.nombre || 'Usuario'
-  const menu  = rol === 'cliente' ? MENU_CLIENTE : MENU_ASESOR
+  const menu  = rol === 'cliente' ? MENU_CLIENTE : rol === 'gerente' ? MENU_GERENTE : MENU_ASESOR
 
   return (
     <>
@@ -233,7 +237,7 @@ export default function HBHeader() {
 
         {/* ── Top bar ── */}
         <div className="hb-top-v2">
-          <Link to={rol === 'cliente' ? '/banca' : '/asesor'} className="hb-logo-v2">
+          <Link to={rol === 'cliente' ? '/banca' : rol === 'gerente' ? '/gerente' : '/asesor'} className="hb-logo-v2">
             <div className="hb-logo-badge-v2">Q</div>
             <div>
               <div>QAPAQ</div>
